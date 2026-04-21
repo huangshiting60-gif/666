@@ -20,8 +20,8 @@ function setup() {
   // 產生一個與視訊畫面顯示大小相同的 graphics 物件
   pg = createGraphics(width * 0.6, height * 0.6);
   
-  // 產生初始的 80 個泡泡
-  for (let i = 0; i < 80; i++) {
+  // 減少泡泡的數量，避免畫面太雜亂 (從 80 改為 25)
+  for (let i = 0; i < 25; i++) {
     bubbles.push({
       x: random(width * 0.6), // 初始位置限制在視訊畫面的寬度內
       y: random(height * 0.6), // 初始位置限制在視訊畫面的高度內
@@ -59,6 +59,7 @@ function setup() {
       backdrop-filter: blur(4px); /* 毛玻璃效果 */
       transition: all 0.3s ease;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 100; /* 確保按鈕在最上層，不會被畫布或其他圖層擋住導致無法點擊 */
     }
     .custom-btn:hover {
       background: rgba(255, 255, 255, 0.9);
@@ -126,11 +127,19 @@ function draw() {
   push();
   translate(width / 2, height / 2); // 將畫布原點移動到中心
   
-  // 為視訊畫面加上柔和的陰影，提升立體感與精緻度
+  // 【修正】先單獨畫一個透明的底塊來產生陰影，避免和影像濾鏡一起計算時發生衝突
   drawingContext.shadowOffsetX = 0;
   drawingContext.shadowOffsetY = 8;
   drawingContext.shadowBlur = 25;
   drawingContext.shadowColor = 'rgba(0, 0, 0, 0.15)';
+  noStroke();
+  fill(255); // 畫一個白底，等下會被影片完全蓋住
+  rectMode(CENTER);
+  rect(0, 0, imgWidth, imgHeight);
+  
+  // 【重要】關閉陰影！避免它吃掉後面的 video filter 濾鏡效果
+  drawingContext.shadowBlur = 0;
+  drawingContext.shadowColor = 'transparent';
   
   scale(-1, 1); // 進行水平翻轉
   drawingContext.filter = currentFilter; // 套用選擇的濾鏡
