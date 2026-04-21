@@ -91,8 +91,13 @@ function setup() {
   btnSepia.class('custom-btn');
   btnSepia.mousePressed(() => currentFilter = 'sepia(100%)');
 
+  let btnMosaic = createButton('馬賽克');
+  btnMosaic.position(380, 20);
+  btnMosaic.class('custom-btn');
+  btnMosaic.mousePressed(() => currentFilter = 'mosaic');
+
   let btnCapture = createButton('📸 擷取畫面');
-  btnCapture.position(380, 20);
+  btnCapture.position(470, 20); // 為了挪出空間，將擷取按鈕往右移
   btnCapture.class('custom-btn');
   btnCapture.mousePressed(() => saveCanvas('my_snapshot', 'png'));
 }
@@ -142,9 +147,38 @@ function draw() {
   drawingContext.shadowColor = 'transparent';
   
   scale(-1, 1); // 進行水平翻轉
-  drawingContext.filter = currentFilter; // 套用選擇的濾鏡
-  image(capture, 0, 0, imgWidth, imgHeight); // 原點已在中心，繪製於 (0, 0)
-  drawingContext.filter = 'none'; // 恢復濾鏡設定，以免影響後面的背景與泡泡
+  
+  if (currentFilter === 'mosaic') {
+    // 根據指示：以 20x20 為單位分隔畫面，產生黑白馬賽克效果
+    capture.loadPixels(); // 載入視訊像素資料
+    if (capture.pixels.length > 0) {
+      let span = 20; // 寬高 20*20 為一個單位
+      let wRatio = imgWidth / capture.width; // 為了符合 60% 畫布比例計算縮放率
+      let hRatio = imgHeight / capture.height;
+      
+      push();
+      translate(-imgWidth / 2, -imgHeight / 2); // 移至畫面的左上角開始繪製
+      noStroke();
+      rectMode(CORNER);
+      for (let y = 0; y < capture.height; y += span) {
+        for (let x = 0; x < capture.width; x += span) {
+          let index = (x + y * capture.width) * 4; // 取得像素陣列中 RGBA 的索引
+          let r = capture.pixels[index];
+          let g = capture.pixels[index + 1];
+          let b = capture.pixels[index + 2];
+          let gray = (r + g + b) / 3; // 取平均值轉換為灰階數字
+          
+          fill(gray); // 將該數字當作單位顏色
+          rect(x * wRatio, y * hRatio, span * wRatio, span * hRatio); // 繪製方塊
+        }
+      }
+      pop();
+    }
+  } else {
+    drawingContext.filter = currentFilter; // 套用選擇的 CSS 濾鏡
+    image(capture, 0, 0, imgWidth, imgHeight); // 原點已在中心，繪製於 (0, 0)
+    drawingContext.filter = 'none'; // 恢復濾鏡設定，以免影響後面的背景與泡泡
+  }
   pop();
   
   // 在 pg 上面繪製內容（範例：黃色粗邊框與置中文字）
