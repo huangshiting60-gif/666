@@ -1,5 +1,6 @@
 let capture;
 let pg;
+let bubbles = []; // 建立一個陣列來儲存泡泡物件
 
 function setup() {
   // 第一步驟：產生一個全螢幕的畫布
@@ -16,11 +17,28 @@ function setup() {
   
   // 產生一個與視訊畫面顯示大小相同的 graphics 物件
   pg = createGraphics(width * 0.6, height * 0.6);
+  
+  // 產生初始的 80 個泡泡
+  for (let i = 0; i < 80; i++) {
+    bubbles.push({
+      x: random(width * 0.6), // 初始位置限制在視訊畫面的寬度內
+      y: random(height * 0.6), // 初始位置限制在視訊畫面的高度內
+      size: random(10, 40),
+      speed: random(1, 3),
+      offset: random(TWO_PI) // 給予每個泡泡不同的搖擺起點
+    });
+  }
 }
 
 function draw() {
-  // 設定畫布的背景顏色為 #e7c6ff
-  background('#e7c6ff');
+  // 使用 Canvas 原生 API 繪製漸層背景，讓畫面變得更豐富
+  let ctx = drawingContext;
+  let grad = ctx.createLinearGradient(0, 0, 0, height);
+  grad.addColorStop(0, '#0f0c29'); // 頂部深色
+  grad.addColorStop(0.5, '#302b63'); // 中間紫色
+  grad.addColorStop(1, '#24243e'); // 底部深藍
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, width, height);
   
   // 計算影像的顯示大小為整個畫布寬高比例的 60%
   let imgWidth = width * 0.6;
