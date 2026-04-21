@@ -22,8 +22,12 @@ function draw() {
   let imgWidth = width * 0.6;
   let imgHeight = height * 0.6;
   
-  // 將擷取的攝影機影像繪製在畫布的正中間
-  image(capture, width / 2, height / 2, imgWidth, imgHeight);
+  // 將擷取的攝影機影像繪製在畫布的正中間，並修正左右顛倒的問題
+  push();
+  translate(width / 2, height / 2); // 將畫布原點移動到中心
+  scale(-1, 1); // 進行水平翻轉
+  image(capture, 0, 0, imgWidth, imgHeight); // 原點已在中心，繪製於 (0, 0)
+  pop();
 }
 
 // 額外加入這個函式：當瀏覽器視窗大小改變時，畫布也會自動調整以維持全螢幕
