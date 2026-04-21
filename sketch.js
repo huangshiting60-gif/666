@@ -1,6 +1,7 @@
 let capture;
 let pg;
 let bubbles = []; // 建立一個陣列來儲存泡泡物件
+let currentFilter = 'none'; // 儲存目前的濾鏡狀態
 
 function setup() {
   // 第一步驟：產生一個全螢幕的畫布
@@ -28,15 +29,66 @@ function setup() {
       offset: random(TWO_PI) // 給予每個泡泡不同的搖擺起點
     });
   }
+
+  // 建立按鈕美化的 CSS 樣式（半透明圓角玻璃質感）
+  let style = document.createElement('style');
+  style.innerHTML = `
+    .custom-btn {
+      background: rgba(255, 255, 255, 0.5);
+      border: 2px solid #fff;
+      border-radius: 25px;
+      padding: 8px 16px;
+      font-size: 15px;
+      font-weight: bold;
+      color: #555;
+      cursor: pointer;
+      backdrop-filter: blur(4px); /* 毛玻璃效果 */
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .custom-btn:hover {
+      background: rgba(255, 255, 255, 0.9);
+      color: #ff85a2; /* 滑鼠移過去文字會變馬卡龍粉 */
+      transform: translateY(-3px); /* 向上浮起效果 */
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+  `;
+  document.head.appendChild(style);
+
+  // 建立濾鏡選擇與擷取畫面按鈕，套用 custom-btn 樣式並調整間距
+  let btnNormal = createButton('正常');
+  btnNormal.position(20, 20);
+  btnNormal.class('custom-btn');
+  btnNormal.mousePressed(() => currentFilter = 'none');
+
+  let btnGray = createButton('灰階');
+  btnGray.position(110, 20);
+  btnGray.class('custom-btn');
+  btnGray.mousePressed(() => currentFilter = 'grayscale(100%)');
+
+  let btnInvert = createButton('負片');
+  btnInvert.position(200, 20);
+  btnInvert.class('custom-btn');
+  btnInvert.mousePressed(() => currentFilter = 'invert(100%)');
+
+  let btnSepia = createButton('復古');
+  btnSepia.position(290, 20);
+  btnSepia.class('custom-btn');
+  btnSepia.mousePressed(() => currentFilter = 'sepia(100%)');
+
+  let btnCapture = createButton('📸 擷取畫面');
+  btnCapture.position(380, 20);
+  btnCapture.class('custom-btn');
+  btnCapture.mousePressed(() => saveCanvas('my_snapshot', 'png'));
 }
 
 function draw() {
   // 使用 Canvas 原生 API 繪製漸層背景，讓畫面變得更豐富
   let ctx = drawingContext;
   let grad = ctx.createLinearGradient(0, 0, 0, height);
-  grad.addColorStop(0, '#0f0c29'); // 頂部深色
-  grad.addColorStop(0.5, '#302b63'); // 中間紫色
-  grad.addColorStop(1, '#24243e'); // 底部深藍
+  grad.addColorStop(0, '#ffb3ba'); // 頂部馬卡龍粉
+  grad.addColorStop(0.5, '#e7c6ff'); // 中間馬卡龍紫
+  grad.addColorStop(1, '#bae1ff'); // 底部馬卡龍藍
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, width, height);
   
@@ -48,11 +100,32 @@ function draw() {
   push();
   translate(width / 2, height / 2); // 將畫布原點移動到中心
   scale(-1, 1); // 進行水平翻轉
+  drawingContext.filter = currentFilter; // 套用選擇的濾鏡
   image(capture, 0, 0, imgWidth, imgHeight); // 原點已在中心，繪製於 (0, 0)
+  drawingContext.filter = 'none'; // 恢復濾鏡設定，以免影響後面的背景與泡泡
   pop();
   
   // 在 pg 上面繪製內容（範例：黃色粗邊框與置中文字）
   pg.clear(); // 每一幀清空背景保持透明，避免殘影
+  
+  // 繪製並更新泡泡效果（將泡泡限制在 pg，也就是視訊畫面範圍內）
+  pg.push();
+  pg.stroke(255, 150); // 泡泡的邊框（白色，半透明）
+  pg.strokeWeight(2);
+  pg.fill(255, 50); // 泡泡內部填色（更透明的白色）
+  for (let b of bubbles) {
+    pg.circle(b.x, b.y, b.size);
+    b.y -= b.speed; // 泡泡往上升
+    b.x += sin(frameCount * 0.02 + b.offset) * 1.5; // 利用 sin 函數產生左右輕微搖擺
+    
+    // 如果飄出 pg 上方，讓泡泡從 pg 底部重新出現
+    if (b.y < -b.size) {
+      b.y = pg.height + b.size;
+      b.x = random(pg.width); // 出現的位置也限制在 pg 的寬度內
+    }
+  }
+  pg.pop();
+
   pg.stroke(255, 255, 0); // 黃色邊線
   pg.strokeWeight(10);
   pg.noFill();
