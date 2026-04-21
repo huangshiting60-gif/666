@@ -1,6 +1,7 @@
 let capture;
 let pg;
 let bubbles = []; // 建立一個陣列來儲存泡泡物件
+let bgElements = []; // 建立一個陣列來儲存背景幾何小圖案
 let currentFilter = 'none'; // 儲存目前的濾鏡狀態
 
 function setup() {
@@ -27,6 +28,19 @@ function setup() {
       size: random(10, 40),
       speed: random(1, 3),
       offset: random(TWO_PI) // 給予每個泡泡不同的搖擺起點
+    });
+  }
+
+  // 產生 50 個散佈在背景的小圖案 (星星與小圓點)
+  for (let i = 0; i < 50; i++) {
+    bgElements.push({
+      x: random(windowWidth),
+      y: random(windowHeight),
+      size: random(8, 20),
+      type: random(['star', 'dot']), // 隨機決定是星星還是圓點
+      color: random(['#FFD1DC', '#FFB6C1', '#E6E6FA', '#FFFACD', '#E0FFFF']), // 柔和的馬卡龍色
+      rot: random(TWO_PI), // 初始旋轉角度
+      speed: random(-0.02, 0.02) // 旋轉速度
     });
   }
 
@@ -83,15 +97,27 @@ function setup() {
 }
 
 function draw() {
-  // 使用 Canvas 原生 API 繪製漸層背景，讓畫面變得更豐富
-  let ctx = drawingContext;
-  let grad = ctx.createLinearGradient(0, 0, 0, height);
-  grad.addColorStop(0, '#ffb3ba'); // 頂部馬卡龍粉
-  grad.addColorStop(0.5, '#e7c6ff'); // 中間馬卡龍紫
-  grad.addColorStop(1, '#bae1ff'); // 底部馬卡龍藍
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, width, height);
+  // 改用溫柔的單色背景（薰衣草淡粉）取代漸層，讓整體風格更清爽乾淨
+  background('#FFF0F5');
   
+  // 繪製背景的幾何小圖案
+  push();
+  noStroke();
+  for (let el of bgElements) {
+    fill(el.color);
+    if (el.type === 'dot') {
+      circle(el.x, el.y, el.size);
+    } else if (el.type === 'star') {
+      push();
+      translate(el.x, el.y);
+      rotate(el.rot);
+      el.rot += el.speed; // 讓星星產生緩慢旋轉的動畫
+      drawStar(0, 0, el.size / 2.5, el.size, 5); // 呼叫自訂的畫星星函式
+      pop();
+    }
+  }
+  pop();
+
   // 計算影像的顯示大小為整個畫布寬高比例的 60%
   let imgWidth = width * 0.6;
   let imgHeight = height * 0.6;
@@ -99,6 +125,13 @@ function draw() {
   // 將擷取的攝影機影像繪製在畫布的正中間，並修正左右顛倒的問題
   push();
   translate(width / 2, height / 2); // 將畫布原點移動到中心
+  
+  // 為視訊畫面加上柔和的陰影，提升立體感與精緻度
+  drawingContext.shadowOffsetX = 0;
+  drawingContext.shadowOffsetY = 8;
+  drawingContext.shadowBlur = 25;
+  drawingContext.shadowColor = 'rgba(0, 0, 0, 0.15)';
+  
   scale(-1, 1); // 進行水平翻轉
   drawingContext.filter = currentFilter; // 套用選擇的濾鏡
   image(capture, 0, 0, imgWidth, imgHeight); // 原點已在中心，繪製於 (0, 0)
@@ -126,15 +159,11 @@ function draw() {
   }
   pg.pop();
 
-  pg.stroke(255, 255, 0); // 黃色邊線
-  pg.strokeWeight(10);
+  // 美化邊框：改為乾淨的純白色粗邊框，並移除中間的測試文字以保持畫面整潔
+  pg.stroke(255); 
+  pg.strokeWeight(16);
   pg.noFill();
   pg.rect(0, 0, pg.width, pg.height);
-  pg.fill(255);
-  pg.noStroke();
-  pg.textAlign(CENTER, CENTER);
-  pg.textSize(32);
-  pg.text('Graphics on Top', pg.width / 2, pg.height / 2);
   
   // 將 pg 繪製在視訊畫面的上方（放在 pop() 之後確保文字與圖形不會跟著左右顛倒）
   image(pg, width / 2, height / 2, imgWidth, imgHeight);
@@ -145,4 +174,20 @@ function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   // 確保瀏覽器改變尺寸時，pg 的大小也能同步更新為畫布的 60%
   pg.resizeCanvas(windowWidth * 0.6, windowHeight * 0.6);
+}
+
+// 繪製星星的輔助函式 (x, y, 內圓半徑, 外圓半徑, 星角數量)
+function drawStar(x, y, radius1, radius2, npoints) {
+  let angle = TWO_PI / npoints;
+  let halfAngle = angle / 2.0;
+  beginShape();
+  for (let a = -PI / 2; a < TWO_PI - PI / 2; a += angle) {
+    let sx = x + cos(a) * radius2;
+    let sy = y + sin(a) * radius2;
+    vertex(sx, sy);
+    sx = x + cos(a + halfAngle) * radius1;
+    sy = y + sin(a + halfAngle) * radius1;
+    vertex(sx, sy);
+  }
+  endShape(CLOSE);
 }
